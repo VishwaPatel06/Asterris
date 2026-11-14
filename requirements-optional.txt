@@ -1,0 +1,25 @@
+# Optional extras - NOT needed to run the app. Install what you actually use.
+# Real DEM / raster support in the 3D terrain upload (needs GDAL: conda-forge or apt "gdal-bin libgdal-dev")
+rasterio
+geopandas
+shapely
+pyproj
+rioxarray
+# Real data access
+earthaccess              # NASA Earthdata login + search
+cdsapi                   # ERA5 (Copernicus Climate Data Store)
+pystac-client            # STAC catalogues
+pds4-tools               # NASA PDS4 products (LOLA/MOLA/HiRISE labels)
+planetaryimage
+pvl
+# Future phases (blueprint Phase 3-4) - none of this is implemented in this build
+torch
+torchvision
+segmentation-models-pytorch
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+geoalchemy2
+celery
+redis

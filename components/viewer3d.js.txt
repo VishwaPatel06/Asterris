@@ -1,0 +1,242 @@
+const D = __DATA__;
+const $ = id => document.getElementById(id);
+const wrap = $('wrap'), canvas = $('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false, preserveDrawingBuffer:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x080F1E, 1);
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(45, 1, 0.01, 400);
+function resize(){ const w = wrap.clientWidth, h = wrap.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+// ---------- helpers ----------
+const RAD = Math.PI / 180;
+const hex = h => new THREE.Color(h);
+function ramp(stops, t){ t = Math.min(0.9999, Math.max(0, t)); const x = t * (stops.length - 1), i = Math.floor(x); return stops[i].clone().lerp(stops[i + 1], x - i); }
+const R = {}; for (const k in D.ramps) R[k] = D.ramps[k].map(hex);
+function lon2x(lon, z){ return (lon + 180) / 360 * Math.pow(2, z); }
+function lat2y(lat, z){ const s = Math.sin(lat * RAD); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * Math.pow(2, z); }
+function x2lon(x, z){ return x / Math.pow(2, z) * 360 - 180; }
+function y2lat(y, z){ const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z); return Math.atan(Math.sinh(n)) / RAD; }
+function status(msg, kind){ const s = $('status'); s.textContent = msg; s.className = kind || ''; }
+function loadImage(url){ return new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => rej(new Error('load failed')); im.src = url; }); }
+function fill(t, o){ return t.replace('{z}', o.z).replace('{x}', o.x).replace('{y}', o.y); }
+
+// ---------- orbit with pan ----------
+function Orbit(o){
+  const s = Object.assign({r:3, theta:0.6, phi:1.1, min:1.3, max:8, target:new THREE.Vector3(), auto:false}, o);
+  let mode = null, px = 0, py = 0, pinch = 0;
+  s.apply = function(){ s.phi = Math.max(0.05, Math.min(Math.PI / 2 - 0.02 + (s.globe ? Math.PI / 2 : 0), s.phi));
+    cam.position.set(s.target.x + s.r * Math.sin(s.phi) * Math.sin(s.theta), s.target.y + s.r * Math.cos(s.phi), s.target.z + s.r * Math.sin(s.phi) * Math.cos(s.theta)); cam.lookAt(s.target); };
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('pointerdown', e => { s.targetTheta = s.targetPhi = s.targetR = undefined; mode = (e.button === 2 || e.shiftKey) ? 'pan' : 'rot'; px = e.clientX; py = e.clientY; canvas.setPointerCapture(e.pointerId); s.moved = false; });
+  canvas.addEventListener('pointerup', e => { mode = null; });
+  canvas.addEventListener('pointermove', e => { if (!mode || !s.enabled) return; const dx = e.clientX - px, dy = e.clientY - py; px = e.clientX; py = e.clientY; if (Math.abs(dx) + Math.abs(dy) > 1) s.moved = true;
+    if (mode === 'rot'){ s.theta -= dx * 0.006 * (s.globe ? s.r / 3 : 1); s.phi -= dy * 0.006 * (s.globe ? s.r / 3 : 1); }
+    else { const k = s.r * 0.0016; const right = new THREE.Vector3().setFromMatrixColumn(cam.matrix, 0), fwd = new THREE.Vector3(-Math.sin(s.theta), 0, -Math.cos(s.theta));
+      s.target.addScaledVector(right, -dx * k).addScaledVector(fwd, dy * k); } });
+  canvas.addEventListener('wheel', e => { if (!s.enabled) return; e.preventDefault(); s.targetR = undefined; s.r = Math.max(s.min, Math.min(s.max, s.r * (1 + Math.sign(e.deltaY) * 0.1))); }, {passive:false});
+  canvas.addEventListener('touchmove', e => { if (e.touches.length == 2 && s.enabled){ const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); if (pinch) s.r = Math.max(s.min, Math.min(s.max, s.r * pinch / d)); pinch = d; } }, {passive:true});
+  canvas.addEventListener('touchend', () => { pinch = 0; });
+  s.enabled = true; return s;
+}
+const globeCtl = Orbit({r:3.2, min:1.25, max:7, globe:true}); const terrCtl = Orbit({r:11, min:0.6, max:30, phi:1.0});
+let view = 'globe';
+
+// ---------- lights ----------
+const amb = new THREE.AmbientLight(0xA8B8CE, 0.55); scene.add(amb);
+const sun = new THREE.DirectionalLight(0xFFFFFF, 1.05); scene.add(sun);
+function setSun(az, el){ const a = az * RAD, e = el * RAD; sun.position.set(Math.sin(a) * Math.cos(e) * 30, Math.sin(e) * 30, -Math.cos(a) * Math.cos(e) * 30); }
+setSun(315, 38);
+
+// ---------- label sprites ----------
+function sprite(text, color){ const c = document.createElement('canvas'); const g = c.getContext('2d'); g.font = '600 26px Inter,Segoe UI,sans-serif'; const w = g.measureText(text).width + 24; c.width = w; c.height = 40;
+  g.font = '600 26px Inter,Segoe UI,sans-serif'; g.fillStyle = 'rgba(8,15,30,.78)'; g.fillRect(0, 0, w, 40); g.fillStyle = color || '#F1F5FA'; g.textBaseline = 'middle'; g.fillText(text, 12, 21);
+  const t = new THREE.CanvasTexture(c); const m = new THREE.Sprite(new THREE.SpriteMaterial({map:t, depthTest:false, transparent:true})); m.userData.aspect = w / 40; return m; }
+
+// =====================================================================================
+// GLOBE
+// =====================================================================================
+const globe = new THREE.Group(); scene.add(globe);
+function ll(lat, lon, r){ const p = (90 - lat) * RAD, t = (lon + 180) * RAD; return new THREE.Vector3(-r * Math.sin(p) * Math.cos(t), r * Math.cos(p), r * Math.sin(p) * Math.sin(t)); }
+function proceduralTexture(){ // schematic fallback only when no imagery tiles can be loaded
+  const W = 512, H = 256, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  const base = D.body === 'Mars' ? ['#79543A', '#A8754B', '#C99A6B'] : D.body === 'Moon' ? ['#4B5668', '#7E8CA3', '#A8B8CE'] : ['#146C94', '#286847', '#C99A6B'];
+  const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, base[2]); gr.addColorStop(0.5, base[1]); gr.addColorStop(1, base[0]); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  return new THREE.CanvasTexture(c); }
+const globeMat = new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.95, metalness:0});
+const globeMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), globeMat); globe.add(globeMesh);
+globeMat.map = proceduralTexture();
+globe.add(new THREE.Mesh(new THREE.SphereGeometry(1.012, 64, 48), new THREE.MeshBasicMaterial({color: D.body === 'Earth' ? 0x48BFE3 : D.body === 'Mars' ? 0xF07832 : 0xA8B8CE, transparent:true, opacity:0.07, side:THREE.BackSide})));
+
+async function buildGlobeTexture(){
+  const T = D.tiles && D.tiles.imagery; if (!T) { status('No imagery source configured for ' + D.body + '. Showing schematic colour only.', 'warn'); return; }
+  const earth = D.body === 'Earth';
+  const z = earth ? 2 : 2, cols = Math.pow(2, z) * (earth ? 1 : 2), rows = Math.pow(2, z) * (earth ? 1 : 1);
+  const tw = 256, canvasT = document.createElement('canvas'); canvasT.width = cols * tw; canvasT.height = rows * tw;
+  const g = canvasT.getContext('2d'); g.fillStyle = '#263B59'; g.fillRect(0, 0, canvasT.width, canvasT.height);
+  let ok = 0, total = cols * rows, done = 0;
+  const jobs = [];
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++){
+    jobs.push(loadImage(fill(T, {z:z, x:x, y:y})).then(im => { g.drawImage(im, x * tw, y * tw, tw, tw); ok++; }).catch(() => {}).finally(() => { done++; if (done % 4 == 0 || done == total) status('Loading ' + D.body + ' imagery tiles ' + done + '/' + total); }));
+  }
+  await Promise.all(jobs);
+  if (ok === 0){ status(D.body + ' imagery tiles unreachable (offline or blocked). Showing schematic colour; data layers still work.', 'warn'); return; }
+  let finalCanvas = canvasT;
+  if (earth){ // web-mercator -> equirectangular
+    const out = document.createElement('canvas'); out.width = canvasT.width; out.height = canvasT.width / 2; const og = out.getContext('2d'); og.fillStyle = '#D5EAF2'; og.fillRect(0, 0, out.width, out.height);
+    const H = out.height, Wd = out.width, maxLat = 85.0511;
+    for (let row = 0; row < H; row++){ const lat = 90 - (row + 0.5) / H * 180; if (Math.abs(lat) > maxLat) continue; const my = lat2y(lat, z) / Math.pow(2, z) * canvasT.height;
+      og.drawImage(canvasT, 0, Math.floor(my), canvasT.width, 1, 0, row, Wd, 1); }
+    finalCanvas = out;
+  }
+  const tex = new THREE.CanvasTexture(finalCanvas); tex.anisotropy = 8; globeMat.map = tex; globeMat.needsUpdate = true;
+  status(D.body + ' imagery: ' + ok + '/' + total + ' tiles loaded. ' + (D.tiles.attribution || ''), ok < total ? 'warn' : '');
+}
+
+const markerGroup = new THREE.Group(); globe.add(markerGroup);
+const markerObjs = [];
+function drawGlobeMarkers(){
+  while (markerGroup.children.length) markerGroup.remove(markerGroup.children[0]); markerObjs.length = 0;
+  (D.markers || []).forEach(m => { const col = hex(m.color || '#788BFA'); const sz = m.main ? 0.028 : 0.018;
+    const s = new THREE.Mesh(new THREE.SphereGeometry(sz, 16, 12), new THREE.MeshBasicMaterial({color:col})); s.position.copy(ll(m.lat, m.lon, 1.012)); s.userData = m; markerGroup.add(s); markerObjs.push(s);
+    if (m.main){ const ring = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.05, 40), new THREE.MeshBasicMaterial({color:0xF1F5FA, side:THREE.DoubleSide, transparent:true, opacity:0.9})); ring.position.copy(ll(m.lat, m.lon, 1.013)); ring.lookAt(ll(m.lat, m.lon, 2)); markerGroup.add(ring); } });
+}
+function flyGlobe(lat, lon, r){ const p = ll(lat, lon, 1); globeCtl.targetTheta = Math.atan2(p.x, p.z); globeCtl.targetPhi = Math.acos(p.y); globeCtl.targetR = r || 1.9; }
+// pick on globe
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+function ndc(e){ const b = canvas.getBoundingClientRect(); mouse.set((e.clientX - b.left) / b.width * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); ray.setFromCamera(mouse, cam); }
+let pickLL = null;
+canvas.addEventListener('click', e => { if (view !== 'globe' || globeCtl.moved) return; ndc(e); const hit = ray.intersectObject(globeMesh)[0]; if (!hit) return;
+  const p = hit.point.clone().normalize(); const lat = Math.asin(p.y) / RAD; let lon = Math.atan2(p.z, -p.x) / RAD - 180; if (lon < -180) lon += 360; pickLL = {lat:lat, lon:lon};
+  const mk = ray.intersectObjects(markerObjs)[0]; const t = mk ? mk.object.userData.label + (mk.object.userData.line ? ' - ' + mk.object.userData.line : '') + ' ' : '';
+  $('pick').innerHTML = t + 'Picked ' + lat.toFixed(3) + ', ' + lon.toFixed(3) + (D.body === 'Earth' ? ' <a href="#" id="openT">open terrain here</a>' : ''); if ($('openT')) $('openT').onclick = ev => { ev.preventDefault(); setView('terrain', pickLL.lat, pickLL.lon); }; });
+
+// =====================================================================================
+// TERRAIN
+// =====================================================================================
+const terrain = new THREE.Group(); scene.add(terrain);
+let T = null;   // {n, elev(Float32Array n*n), mpp, unit, tx0, ty0, N, z, imgCanvas|null, mesh, seg, mats}
+let layer = 'satellite', exag = D.exag || 1.6, curLat = D.lat, curLon = D.lon, curZ = D.zoom || 12;
+
+function blur(a, n){ const o = new Float32Array(a.length); for (let y = 0; y < n; y++) for (let x = 0; x < n; x++){ let s = 0, c = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){ const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < n && xx >= 0 && xx < n){ s += a[yy * n + xx]; c++; } } o[y * n + x] = s / c; } return o; }
+
+async function loadEarthTiles(lat, lon, z){
+  const N = 3, tw = 256, n = N * tw; const cx = lon2x(lon, z), cy = lat2y(lat, z); const tx0 = Math.floor(cx) - 1, ty0 = Math.floor(cy) - 1;
+  const elev = new Float32Array(n * n); const eg = document.createElement('canvas'); eg.width = n; eg.height = n; const ec = eg.getContext('2d', {willReadFrequently:true});
+  const ic = document.createElement('canvas'); ic.width = n; ic.height = n; const ig = ic.getContext('2d'); ig.fillStyle = '#263B59'; ig.fillRect(0, 0, n, n);
+  let eOk = 0, iOk = 0; const jobs = [];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++){
+    const o = {z:z, x:tx0 + i, y:ty0 + j};
+    jobs.push(loadImage(fill(D.tiles.terrain, o)).then(im => { ec.drawImage(im, i * tw, j * tw); eOk++; }).catch(() => {}));
+    if (D.tiles.imagery) jobs.push(loadImage(fill(D.tiles.imagery, o)).then(im => { ig.drawImage(im, i * tw, j * tw, tw, tw); iOk++; }).catch(() => {}));
+  }
+  status('Loading terrain tiles (z' + z + ') ...'); await Promise.all(jobs);
+  if (eOk < N * N) return {error:'Elevation tiles unavailable (' + eOk + '/' + (N * N) + ' loaded). Check the network connection; no terrain is invented.'};
+  let px; try { px = ec.getImageData(0, 0, n, n).data; } catch (e) { return {error:'Elevation tiles blocked by the browser (CORS).'}; }
+  for (let k = 0; k < n * n; k++) elev[k] = px[k * 4] * 256 + px[k * 4 + 1] + px[k * 4 + 2] / 256 - 32768;
+  const mpp = 156543.03392 * Math.cos(lat * RAD) / Math.pow(2, z);
+  return {n:n, elev:blur(elev, n), mpp:mpp, unit:(n * mpp) / 10, tx0:tx0, ty0:ty0, N:N, z:z, img:(iOk == N * N ? ic : null), imgCount:iOk, source:'earth'};
+}
+function gridTerrain(g){ const n = g.n; return {n:n, elev:Float32Array.from(g.h), mpp:g.cell_m, unit:(n * g.cell_m) / 10, N:1, img:null, source:'grid', schematic:g.schematic, label:g.label}; }
+
+function stats(e){ let lo = 1e9, hi = -1e9; for (let k = 0; k < e.length; k++){ if (e[k] < lo) lo = e[k]; if (e[k] > hi) hi = e[k]; } return [lo, hi]; }
+
+function colorFor(layerName, i, T, lo, hi, slopeArr){
+  const e = T.elev[i];
+  if (layerName === 'elevation'){
+    if (e <= 0 && T.source === 'earth'){ const t = Math.min(1, -e / 200); return R.water[3].clone().lerp(R.water[0], t); }
+    const t = (e - Math.max(lo, 0)) / Math.max(hi - Math.max(lo, 0), 1); // land: vegetation -> land -> ice
+    if (T.source === 'earth') return ramp([R.veg[1], R.veg[2], R.veg[3], R.land[2], R.land[3], R.land[4], R.ice[0]], t);
+    return ramp([R.land[0], R.land[1], R.land[2], R.land[3], R.land[4], R.ice[0]], (e - lo) / Math.max(hi - lo, 1));
+  }
+  if (layerName === 'slope') return ramp(R.slope, slopeArr[i] / 45);
+  if (layerName === 'volcanic') return ramp(R.volcanic, (e - lo) / Math.max(hi - lo, 1));
+  return hex('#C9D3E3'); // hillshade base
+}
+
+function buildTerrain(t){
+  if (T && T.mesh){ terrain.remove(T.mesh); T.mesh.geometry.dispose(); }
+  T = t; const n = t.n, step = Math.max(2, Math.floor(n / 220)), seg = Math.floor((n - 1) / step);
+  const [lo, hi] = stats(t.elev); t.lo = lo; t.hi = hi;
+  const slope = new Float32Array(n * n); for (let y = 1; y < n - 1; y++) for (let x = 1; x < n - 1; x++){ const gx = (t.elev[y * n + x + 1] - t.elev[y * n + x - 1]) / (2 * t.mpp), gy = (t.elev[(y + 1) * n + x] - t.elev[(y - 1) * n + x]) / (2 * t.mpp); slope[y * n + x] = Math.atan(Math.hypot(gx, gy)) / RAD; }
+  t.slope = slope; t.step = step; t.seg = seg;
+  const geo = new THREE.BufferGeometry(); const nv = (seg + 1) * (seg + 1); const pos = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), idx = [];
+  t.idxMap = new Int32Array(nv);
+  for (let j = 0; j <= seg; j++) for (let i = 0; i <= seg; i++){ const v = j * (seg + 1) + i; const px = Math.min(i * step, n - 1), py = Math.min(j * step, n - 1); t.idxMap[v] = py * n + px;
+    pos[v * 3] = (i / seg - 0.5) * 10; pos[v * 3 + 2] = (j / seg - 0.5) * 10; uv[v * 2] = i / seg; uv[v * 2 + 1] = 1 - j / seg; }
+  for (let j = 0; j < seg; j++) for (let i = 0; i < seg; i++){ const a = j * (seg + 1) + i, b = a + 1, c = a + seg + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); geo.setIndex(idx);
+  t.geo = geo; t.matSat = new THREE.MeshStandardMaterial({map: t.img ? new THREE.CanvasTexture(t.img) : null, roughness:0.9, metalness:0, side:THREE.DoubleSide});
+  if (t.matSat.map) t.matSat.map.anisotropy = 8;
+  t.matCol = new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.88, metalness:0.02, side:THREE.DoubleSide});
+  t.mesh = new THREE.Mesh(geo, t.matCol); terrain.add(t.mesh);
+  applyLayer(); applyExag(); drawTerrainMarkers();
+  const [a, b] = [lo.toFixed(0), hi.toFixed(0)];
+  $('tinfo').innerHTML = (t.source === 'earth' ? 'z' + t.z + ' - ' + (t.mpp).toFixed(0) + ' m/px - area ' + (10 * t.unit / 1000).toFixed(1) + ' km' : (t.schematic ? 'SCHEMATIC terrain - not measured' : 'user DEM') + ' - cell ' + t.mpp.toFixed(1) + ' m') + '<br>elevation ' + a + ' to ' + b + ' m';
+  terrCtl.r = 11; terrCtl.theta = 0.6; terrCtl.phi = 1.0; terrCtl.target.set(0, 0, 0); legend();
+}
+function applyLayer(){ if (!T) return; const useSat = layer === 'satellite' && T.img; T.mesh.material = useSat ? T.matSat : T.matCol;
+  if (!useSat){ const col = T.geo.attributes.color; const nm = (layer === 'satellite') ? 'elevation' : layer; for (let v = 0; v < col.count; v++){ const c = colorFor(nm, T.idxMap[v], T, T.lo, T.hi, T.slope); col.setXYZ(v, c.r, c.g, c.b); } col.needsUpdate = true; } T.mesh.material.needsUpdate = true; legend(); }
+function applyExag(){ if (!T) return; const pos = T.geo.attributes.position; for (let v = 0; v < pos.count; v++) pos.setY(v, T.elev[T.idxMap[v]] / T.unit * exag); pos.needsUpdate = true; T.geo.computeVertexNormals(); T.geo.computeBoundingSphere(); drawTerrainMarkers(); }
+function legend(){ const L = $('legend'); if (!T) { L.innerHTML = ''; return; } const nm = (layer === 'satellite' && T.img) ? null : (layer === 'satellite' ? 'elevation' : layer);
+  const grad = { elevation: T.source === 'earth' ? 'linear-gradient(90deg,' + D.ramps.water[1] + ',' + D.ramps.water[3] + ',' + D.ramps.veg[2] + ',' + D.ramps.veg[3] + ',' + D.ramps.land[2] + ',' + D.ramps.land[4] + ',' + D.ramps.ice[0] + ')' : 'linear-gradient(90deg,' + D.ramps.land.join(',') + ',' + D.ramps.ice[0] + ')', slope:'linear-gradient(90deg,' + D.ramps.slope.join(',') + ')', hillshade:'linear-gradient(90deg,#273449,#C9D3E3)', volcanic:'linear-gradient(90deg,' + D.ramps.volcanic.join(',') + ')' };
+  if (!nm){ L.innerHTML = '<span>Satellite imagery</span>'; return; }
+  const lab = nm === 'slope' ? ['0 deg', '45+ deg'] : nm === 'hillshade' ? ['shadow', 'lit'] : [T.lo.toFixed(0) + ' m', T.hi.toFixed(0) + ' m'];
+  L.innerHTML = '<div style="height:8px;border-radius:4px;background:' + grad[nm] + '"></div><div class="lg"><span>' + lab[0] + '</span><span>' + nm + '</span><span>' + lab[1] + '</span></div>'; }
+
+let tmarks = [];
+function groundY(fx, fz){ if (!T) return 0; const x = Math.min(T.n - 1, Math.max(0, Math.round(fx * (T.n - 1)))), y = Math.min(T.n - 1, Math.max(0, Math.round(fz * (T.n - 1)))); return T.elev[y * T.n + x] / T.unit * exag; }
+function drawTerrainMarkers(){
+  tmarks.forEach(o => terrain.remove(o)); tmarks = []; if (!T || !$('mk').checked) return; let outside = 0;
+  (D.markers || []).forEach(m => { let fx, fz;
+    if (T.source === 'earth'){ fx = (lon2x(m.lon, T.z) - T.tx0) / T.N; fz = (lat2y(m.lat, T.z) - T.ty0) / T.N; } else if (m.cell){ fx = m.cell[1] / (T.n - 1); fz = m.cell[0] / (T.n - 1); } else return;
+    if (fx < 0 || fx > 1 || fz < 0 || fz > 1){ outside++; return; }
+    const y = groundY(fx, fz), x = (fx - 0.5) * 10, z = (fz - 0.5) * 10, col = hex(m.color || '#788BFA');
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 6), new THREE.MeshBasicMaterial({color:col})); pole.position.set(x, y + 0.25, z); terrain.add(pole); tmarks.push(pole);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 10), new THREE.MeshBasicMaterial({color:col})); head.position.set(x, y + 0.52, z); terrain.add(head); tmarks.push(head);
+    const sp = sprite(m.label, '#F1F5FA'); sp.scale.set(0.36 * sp.userData.aspect, 0.36, 1); sp.position.set(x, y + 0.85, z); terrain.add(sp); tmarks.push(sp);
+    if (m.bbox && T.source === 'earth'){ const [w, s, e, n] = m.bbox, pts = []; const cs = [[w, n], [e, n], [e, s], [w, s], [w, n]];
+      for (let q = 0; q < 4; q++) for (let k = 0; k < 12; k++){ const t = k / 12, lo = cs[q][0] + (cs[q + 1][0] - cs[q][0]) * t, la = cs[q][1] + (cs[q + 1][1] - cs[q][1]) * t; const bx = (lon2x(lo, T.z) - T.tx0) / T.N, bz = (lat2y(la, T.z) - T.ty0) / T.N; pts.push(new THREE.Vector3((bx - 0.5) * 10, groundY(bx, bz) + 0.03, (bz - 0.5) * 10)); }
+      const ln = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:col})); terrain.add(ln); tmarks.push(ln); } });
+  if (D.path && D.path.length > 1 && T.source === 'grid'){ const pts = D.path.map(p => new THREE.Vector3((p[1] / (T.n - 1) - 0.5) * 10, groundY(p[1] / (T.n - 1), p[0] / (T.n - 1)) + 0.04, (p[0] / (T.n - 1) - 0.5) * 10)); const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), Math.min(500, pts.length * 3), 0.025, 6, false), new THREE.MeshBasicMaterial({color:0xF1F5FA})); terrain.add(tube); tmarks.push(tube); }
+  $('outside').textContent = outside ? outside + ' marker(s) outside this view; use "Go to".' : '';
+}
+// cursor readout
+canvas.addEventListener('pointermove', e => { if (view !== 'terrain' || !T || !T.mesh) return; ndc(e); const h = ray.intersectObject(T.mesh)[0]; if (!h) return; const fx = h.point.x / 10 + 0.5, fz = h.point.z / 10 + 0.5; const el = h.point.y * T.unit / exag;
+  if (T.source === 'earth'){ const lon = x2lon(T.tx0 + fx * T.N, T.z), lat = y2lat(T.ty0 + fz * T.N, T.z); $('cur').textContent = lat.toFixed(4) + ', ' + lon.toFixed(4) + '  -  ' + el.toFixed(0) + ' m'; } else $('cur').textContent = 'cell ' + Math.round(fz * (T.n - 1)) + ',' + Math.round(fx * (T.n - 1)) + '  -  ' + el.toFixed(0) + ' m'; });
+
+// =====================================================================================
+// view switching and controls
+// =====================================================================================
+async function setView(v, lat, lon){
+  if (v === 'terrain'){
+    if (D.body === 'Earth'){ if (lat !== undefined){ curLat = lat; curLon = lon; } view = 'terrain'; syncView(); const r = await loadEarthTiles(curLat, curLon, curZ); if (r.error){ status(r.error, 'err'); view = 'globe'; syncView(); return; } buildTerrain(r);
+      status('Terrain: AWS Terrain Tiles (SRTM/3DEP blend) ' + (r.img ? '+ Esri World Imagery' : '(imagery unavailable; showing elevation colours)'), r.img ? '' : 'warn'); if (!r.img) { layer = 'elevation'; $('layer').value = 'elevation'; applyLayer(); } }
+    else if (D.grid){ view = 'terrain'; syncView(); buildTerrain(gridTerrain(D.grid)); layer = 'elevation'; $('layer').value = 'elevation'; applyLayer(); status(D.grid.schematic ? 'Schematic relief (no measured DEM loaded for this body). Upload a DEM in Data Sources to replace it.' : 'Uploaded DEM: ' + (D.grid.label || ''), D.grid.schematic ? 'warn' : ''); }
+    else { status('No local DEM for ' + D.body + '. Upload a LOLA/MOLA/HiRISE DEM in the Data Sources panel to enable terrain view.', 'warn'); return; }
+  } else { view = 'globe'; syncView(); }
+}
+function syncView(){ globe.visible = view === 'globe'; terrain.visible = view === 'terrain'; globeCtl.enabled = view === 'globe'; terrCtl.enabled = view === 'terrain';
+  $('bGlobe').classList.toggle('on', view === 'globe'); $('bTerr').classList.toggle('on', view === 'terrain'); $('terrCtl').style.display = view === 'terrain' ? 'flex' : 'none'; $('globeCtl').style.display = view === 'globe' ? 'flex' : 'none'; legend(); }
+$('bGlobe').onclick = () => setView('globe'); $('bTerr').onclick = () => setView('terrain');
+$('layer').onchange = e => { layer = e.target.value; applyLayer(); };
+$('exag').oninput = e => { exag = parseFloat(e.target.value); $('exv').textContent = exag.toFixed(1) + 'x'; applyExag(); };
+$('sunaz').oninput = e => setSun(parseFloat(e.target.value), parseFloat($('sunel').value)); $('sunel').oninput = e => setSun(parseFloat($('sunaz').value), parseFloat(e.target.value));
+$('mk').onchange = drawTerrainMarkers; $('rot').onchange = e => { globeCtl.auto = e.target.checked; };
+$('zoom').onchange = async e => { curZ = parseInt(e.target.value); await setView('terrain'); };
+$('goto').onchange = async e => { if (e.target.value === '') return; const m = D.markers[parseInt(e.target.value)]; if (view === 'terrain'){ if (D.body === 'Earth') await setView('terrain', m.lat, m.lon); } else flyGlobe(m.lat, m.lon, 1.7); };
+$('reset').onclick = () => { if (view === 'terrain'){ terrCtl.r = 11; terrCtl.theta = 0.6; terrCtl.phi = 1.0; terrCtl.target.set(0, 0, 0); } else { flyGlobe(D.lat, D.lon, 2.6); } };
+if (D.body !== 'Earth'){ $('zoomRow').style.display = 'none'; if (!D.grid) $('bTerr').title = 'Needs an uploaded DEM'; }
+if (!(D.tiles && D.tiles.imagery) || D.body !== 'Earth') { const o = $('layer').querySelector('option[value=satellite]'); if (o) o.remove(); $('layer').value = 'elevation'; layer = 'elevation'; }
+(D.markers || []).forEach((m, i) => { const o = document.createElement('option'); o.value = i; o.textContent = m.label; $('goto').appendChild(o); });
+$('exag').value = exag; $('exv').textContent = exag.toFixed(1) + 'x'; $('zoom').value = curZ; $('tt').textContent = D.title || D.body;
+
+// ---------- main loop ----------
+(function init(){ drawGlobeMarkers(); globeCtl.theta = Math.atan2(ll(D.lat, D.lon, 1).x, ll(D.lat, D.lon, 1).z); globeCtl.phi = Math.acos(ll(D.lat, D.lon, 1).y); globeCtl.r = 2.6; globeCtl.targetR = 2.6; globeCtl.targetTheta = globeCtl.theta; globeCtl.targetPhi = globeCtl.phi;
+  syncView(); buildGlobeTexture().then(() => { if (D.start === 'terrain') setView('terrain'); }); })();
+let last = performance.now();
+(function loop(t){ requestAnimationFrame(loop); const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  if (view === 'globe'){ const c = globeCtl; if (c.auto && !c.moved) c.theta += dt * 0.12; if (c.targetTheta !== undefined && c.targetR !== undefined){ let d = c.targetTheta - c.theta; d = Math.atan2(Math.sin(d), Math.cos(d)); c.theta += d * Math.min(1, dt * 4); c.phi += (c.targetPhi - c.phi) * Math.min(1, dt * 4); c.r += (c.targetR - c.r) * Math.min(1, dt * 4); } c.apply(); }
+  else terrCtl.apply();
+  renderer.render(scene, cam); })(last);

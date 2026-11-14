@@ -1,0 +1,11 @@
+# Celestial Cartographers - runtime requirements (everything the app imports)
+streamlit>=1.50          # st.navigation(position="top"); tested on 1.67
+plotly>=6.0              # Scattermap charts; tested on 7.1
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11              # DEM filters, landform detector, statistics
+pillow>=10.0             # elevation-tile decoding
+requests>=2.31           # public services (Open-Meteo, NASA POWER, USGS, tiles)
+reportlab>=4.0           # PDF campaign briefs
+scikit-learn>=1.3        # exploratory clustering helper (ai/clustering.py)
+pytest>=8.0              # tests
