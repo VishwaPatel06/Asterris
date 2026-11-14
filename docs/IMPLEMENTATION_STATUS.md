@@ -21,3 +21,13 @@ Legend: Done = works and tested here; Partial = works with stated limits; Not bu
 | Campaign and exports (PDF, MD, CSV, GeoJSON) | Done | views/06, reports/generators.py | none | smoke | - |
 | Research assistant | Partial | ai/assistant.py | OPENAI_API_KEY (future) | smoke | Retrieval only |
 | CesiumJS, FastAPI, PostGIS, PyTorch models, Docker rework | Not built | - | - | - | Three.js viewer used instead of Cesium |
+
+## Update 2 (bug fixes and accuracy tooling)
+| Item | Status | Files |
+|---|---|---|
+| Code printed in tabs (Streamlit magic on bare expressions) | Fixed; regression test fails if any page prints a help/DeltaGenerator panel | views/01, 03, 04, 06; tests/test_fixes.py |
+| Fingerprint source selector (MOLA, CRISM, HiRISE/CTX, ...) updates profile and re-ranks Earth candidates | Done | views/02_Planetary_Explorer.py |
+| Terrain derivatives: colour legends, no warning box | Done | views/02, components/charts.py |
+| Physics: closed-form comparison, convergence, strength bound, uncertainty propagation, upload validation and calibration | Done | scientific_engine/validation.py, validation_data.py |
+| Similarity: literature-pair agreement, ablation, upload labelled-pair scoring | Done (weak labels) | same |
+| Detector: noise/resolution robustness, real-crater spot check (online), inventory scoring | Done (spot check untested live) | same |

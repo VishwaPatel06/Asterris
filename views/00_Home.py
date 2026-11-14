@@ -163,7 +163,7 @@ st.markdown(
         margin: 2px 0 0 0;
     }
 
-    /* 6 Rectangular Workspace Navigation Boxes */
+    /* Rectangular Workspace Navigation Boxes */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background: linear-gradient(155deg, rgba(15, 23, 42, 0.85), rgba(9, 13, 24, 0.94)) !important;
         border: 1px solid rgba(56, 189, 248, 0.24) !important;
@@ -213,6 +213,7 @@ st.markdown(
 
 # 3. Prepare Candidate Pins for the 3D Earth Globe
 top = rows[0]
+top_score = "n/a" if top["total"] is None else f"{top['total']:.2f}"
 by_score = {r["id"]: r["total"] for r in rows}
 globe_pins = [
     {
@@ -266,7 +267,7 @@ with hero_left:
             <div class="ht-box" style="border-left-color: #5eead4;">
                 <div class="ht-label">Top Earth Analogue</div>
                 <div class="ht-val">{top['name'].split(' (')[0]}</div>
-                <div class="ht-sub">Similarity Index {top['total']:.2f}</div>
+                <div class="ht-sub">Similarity Index {top_score}</div>
             </div>
             <div class="ht-box" style="border-left-color: #a78bfa;">
                 <div class="ht-label">Mission Objective</div>
@@ -286,10 +287,10 @@ with hero_left:
     # Primary Quick-Launch CTA Buttons
     cta1, cta2 = st.columns(2)
     with cta1:
-        if st.button("🎛️ Configure Mission Control", type="primary", use_container_width=True):
+        if st.button("Configure Mission Control", type="primary", width="stretch"):
             st.switch_page("views/01_Mission_Control.py")
     with cta2:
-        if st.button("🪐 Launch Planetary Explorer", use_container_width=True):
+        if st.button("Launch Planetary Explorer", width="stretch"):
             st.switch_page("views/02_Planetary_Explorer.py")
 
 with hero_right:
@@ -605,7 +606,6 @@ st.markdown(
 workspaces = [
     {
         "step": "Workspace 01",
-        "icon": "🎛️",
         "title": "Mission Control",
         "desc": "Select target planetary worlds, define mission objectives, tune 8-dimensional scoring weights, and ingest custom raster layers.",
         "page": "views/01_Mission_Control.py",
@@ -613,7 +613,6 @@ workspaces = [
     },
     {
         "step": "Workspace 02",
-        "icon": "🪐",
         "title": "Planetary Explorer",
         "desc": "Fly over lunar and Martian targets in 3D, inspect orbital data layers, and generate quantitative environmental fingerprints.",
         "page": "views/02_Planetary_Explorer.py",
@@ -621,7 +620,6 @@ workspaces = [
     },
     {
         "step": "Workspace 03",
-        "icon": "🔍",
         "title": "Analog Discovery Lab",
         "desc": "Scan terrestrial elevation grids, detect geomorphological landforms automatically, and rank top analogue field sites.",
         "page": "views/03_Analog_Discovery_Lab.py",
@@ -629,7 +627,6 @@ workspaces = [
     },
     {
         "step": "Workspace 04",
-        "icon": "⚖️",
         "title": "Scientific Comparison",
         "desc": "Compare Earth, Moon, and Mars sites side by side across mineralogical, thermal, and topographic fidelity metrics.",
         "page": "views/04_Scientific_Comparison.py",
@@ -637,7 +634,6 @@ workspaces = [
     },
     {
         "step": "Workspace 05",
-        "icon": "🦾",
         "title": "Mission Engineering",
         "desc": "Simulate rover traverses, slope hazards, subsurface drilling constraints, and operational safety envelopes.",
         "page": "views/05_Mission_Engineering.py",
@@ -645,7 +641,6 @@ workspaces = [
     },
     {
         "step": "Workspace 06",
-        "icon": "📋",
         "title": "Field Campaign",
         "desc": "Compile transparent analogue validation briefs, document analogy breakdown limits, and export campaign reports.",
         "page": "views/06_Field_Campaign_Reports.py",
@@ -663,14 +658,13 @@ for row_idx in range(0, len(workspaces), 3):
                     f"""
                     <div class="nav-card-header">
                         <span class="nav-step">{ws['step']}</span>
-                        <span style="font-size:1.35rem;">{ws['icon']}</span>
                     </div>
                     <div class="nav-card-title">{ws['title']}</div>
                     <div class="nav-card-desc">{ws['desc']}</div>
                     """,
                     unsafe_allow_html=True,
                 )
-                if st.button(ws["btn"], key=f"nav_{ws['page']}", use_container_width=True):
+                if st.button(ws["btn"], key=f"nav_{ws['page']}", width="stretch"):
                     st.switch_page(ws["page"])
 
 st.write("")

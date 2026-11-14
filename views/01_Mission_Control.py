@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from components import theme, viewer3d
+from components import theme
 from components.context import _apply_preset, sidebar
 from config import palette as P
 from config.data_catalog import LAYERS
@@ -104,13 +104,16 @@ with tab_data:
     if ups and st.button("Register uploads", type="primary"):
         for f in ups:
             ok, msg = manager.register_upload(f.name, f.getvalue(), ubody, ulayer)
-            (st.success if ok else st.error)(msg)
+            if ok:
+                st.success(msg)
+            else:
+                st.error(msg)
         st.rerun()
     ds = manager.list_datasets()
     if ds:
         st.dataframe(pd.DataFrame(ds)[["original_name", "kind", "body", "layer", "bytes", "uploaded_utc", "provenance_class"]], hide_index=True, width="stretch")
         r1, r2 = st.columns([3, 1]); rid = r1.selectbox("Remove dataset", [d["id"] for d in ds], format_func=lambda i: next(d["original_name"] for d in ds if d["id"] == i))
-        if r2.button("Remove", width="stretch"):
+        if r2.button("Remove", width="stretch") and rid:
             manager.remove_dataset(rid); st.rerun()
         with st.expander("Dataset metadata and coverage"):
             for d in ds:
@@ -122,6 +125,9 @@ with tab_data:
         st.toast(f"Removed {manager.clear_cache()} cached file(s)")
     errs = manager.ingest_errors()
     with st.expander(f"Ingestion errors ({len(errs)})"):
-        st.dataframe(pd.DataFrame(errs), hide_index=True, width="stretch") if errs else st.caption("None.")
-        if errs and st.button("Clear error log"):
-            manager.clear_errors(); st.rerun()
+        if errs:
+            st.dataframe(pd.DataFrame(errs), hide_index=True, width="stretch")
+            if st.button("Clear error log"):
+                manager.clear_errors(); st.rerun()
+        else:
+            st.caption("None.")

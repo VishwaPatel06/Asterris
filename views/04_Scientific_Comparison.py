@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -36,7 +35,10 @@ with tab_c:
     st.dataframe(sc, hide_index=True, width="stretch")
     st.markdown("**Geological process comparison**")
     pr = processes_for(c)
-    st.dataframe(pd.DataFrame(pr), hide_index=True, width="stretch") if pr else st.caption("No process tags recorded for this site.")
+    if pr:
+        st.dataframe(pd.DataFrame(pr), hide_index=True, width="stretch")
+    else:
+        st.caption("No process tags recorded for this site.")
     if len(rows) >= 2:
         st.markdown("**Terrain cross-sections (normalised)**")
         from scientific_engine import dem

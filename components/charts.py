@@ -137,3 +137,12 @@ def profiles(series: Dict[str, tuple], title: str, normalised: bool = True) -> g
 def layer_image(rgb: np.ndarray, title: str) -> go.Figure:
     fig = go.Figure(go.Image(z=rgb)); fig.update_layout(title=title, xaxis=dict(visible=False), yaxis=dict(visible=False, scaleanchor="x"))
     return base(fig, 420, False)
+
+
+def legend_bar(ramp: str, lo: str, hi: str, meaning: str, title: str = "") -> str:
+    """HTML colour-scale legend for a semantic layer: gradient bar, min/max values and a plain-language reading of the colours."""
+    stops = P.LAYER_RAMPS[ramp]
+    grad = ",".join(f"{c} {int(s * 100)}%" for s, c in stops)
+    return (f"<div style='margin:.1rem 0 .9rem 0'><div style='height:10px;border-radius:5px;background:linear-gradient(90deg,{grad});border:1px solid {P.STELLAR_SLATE}'></div>"
+            f"<div style='display:flex;justify-content:space-between;font-size:.76rem;color:{P.MOONLIGHT};margin-top:3px'><span>{lo}</span><span>{title}</span><span>{hi}</span></div>"
+            f"<div style='font-size:.78rem;color:{P.MOONLIGHT};margin-top:2px'>{meaning}</div></div>")

@@ -91,7 +91,80 @@ def physics_throughput() -> Dict[str, float]:
     return {"evaluations": 10000, "seconds": dt, "evals_per_second": 10000 / dt}
 
 
+def physics_extended() -> Dict:
+    """Everything about the physics engine that can be measured WITHOUT hardware data."""
+    out: Dict = {}
+    # 1. independent-model comparison: Bekker's classical closed-form rigid-wheel sinkage approximation
+    errs = []
+    for soil in P.SOILS.values():
+        for g in (1.62, 3.72, 9.80665):
+            for mass in (60, 150, 400):
+                for r in (0.15, 0.25):
+                    b = 0.12; W = mass * g / 4
+                    k = (soil.kc / b + soil.kphi) * 1000.0
+                    z_cf = (3 * W / ((3 - soil.n) * b * k * math.sqrt(2 * r))) ** (2 / (2 * soil.n + 1))
+                    z_num = float(P.wheel_forces(soil, W, r, b, 0.0)["sinkage_m"])
+                    errs.append(abs(z_num - z_cf) / z_cf * 100)
+    out["closed_form"] = {"cases": len(errs), "mean_pct": float(np.mean(errs)), "max_pct": float(np.max(errs)),
+                          "note": "Numerical solver vs Bekker closed-form approximation (rigid wheel, no shear). The approximation itself is only accurate to a few percent, so small gaps are expected."}
+    # 2. numerical convergence in contact-arc resolution
+    soil = P.SOILS["Dry sand (Wong textbook values)"]
+    saved = P.N_THETA; ref = None; conv = []
+    try:
+        for n in (1025, 16, 32, 64, 128, 256):
+            P.N_THETA = n
+            W, DP, T = P._integrals(soil, 0.2, 0.12, np.array(0.35), np.array(0.2)); vals = (float(W), float(DP), float(T))
+            if ref is None:
+                ref = vals; continue
+            conv.append({"arc points": n, **{k: abs(v - r_) / abs(r_) * 100 for k, v, r_ in zip(("load error %", "pull error %", "torque error %"), vals, ref)}})
+    finally:
+        P.N_THETA = saved
+    out["convergence"] = conv; out["operating_arc_points"] = saved
+    # 3. Mohr-Coulomb bound: pull cannot exceed available shear strength
+    viol = 0; tot = 0
+    for soil in P.SOILS.values():
+        for load in (30, 60, 120):
+            f = P.wheel_forces(soil, load, 0.2, 0.12, P.SLIP_GRID)
+            area = 0.12 * 0.2 * f["theta1"]
+            bound = load * math.tan(math.radians(soil.phi_deg)) + soil.c_kpa * 1000 * area
+            viol += int((f["DP_N"] > bound * 1.001).sum()); tot += len(bound)
+    out["strength_bound"] = {"points": tot, "violations": viol}
+    # 4. parameter-uncertainty propagation (+/-20% on strength parameters, +/-3 deg on friction, +/-0.1 on n)
+    rng = np.random.default_rng(3); base = P.SOILS["Lunar regolith (commonly cited Apollo-era values)"]; res = {}
+    for body, g in (("Moon", 1.62), ("Mars", 3.72), ("Earth", 9.80665)):
+        sk, dp = [], []
+        for _ in range(150):
+            s2 = P.Soil("mc", float(np.clip(base.n + rng.normal(0, 0.1), 0.5, 1.5)), base.kc * (1 + rng.normal(0, .2)), base.kphi * (1 + rng.normal(0, .2)),
+                        max(base.c_kpa * (1 + rng.normal(0, .2)), 0.01), base.phi_deg + rng.normal(0, 3), base.K_m * (1 + rng.normal(0, .2)), "mc")
+            f = P.wheel_forces(s2, 150 * g / 4, 0.2, 0.12, 0.2); sk.append(float(f["sinkage_m"]) * 1000); dp.append(float(f["DP_N"]))
+        res[body] = {"sinkage_mm_mean": float(np.mean(sk)), "sinkage_cv_pct": float(np.std(sk) / np.mean(sk) * 100), "sinkage_p5_p95": (float(np.percentile(sk, 5)), float(np.percentile(sk, 95))),
+                     "pull_N_mean": float(np.mean(dp)), "pull_cv_pct": float(np.std(dp) / abs(np.mean(dp)) * 100)}
+    out["uncertainty"] = res
+    return out
+
+
 # --------------------------------------------------------------------------------------------- similarity
+def similarity_extended() -> Dict:
+    """Ranking quality that can be measured without true labels: literature agreement, dimension ablation, null-model comparison."""
+    from data_sources.seed_catalog import CANDIDATES, TARGETS
+    from scientific_engine import similarity as S
+    from scientific_engine import validation_data as VD
+    lit = VD.evaluate_ranking(VD.LITERATURE_PAIRS, TARGETS, CANDIDATES)
+    lit_out = None if not lit["ok"] else {k: v for k, v in lit.items() if k != "per_target"}
+    per_target = None if not lit["ok"] else lit["per_target"].to_dict("records")
+    # ablation: leave-one-dimension-out rank correlation with the full ranking (averaged over targets)
+    obj = "Geological Exploration"; w = PRESETS[obj]; abl = {d: [] for d in DIMENSIONS}
+    for T in TARGETS:
+        base = {r["id"]: r["total"] for r in S.rank_candidates(T, CANDIDATES, w, obj)}; ids = list(base)
+        for d in DIMENSIONS:
+            w2 = {k: (0 if k == d else v) for k, v in w.items()}
+            r2 = {r["id"]: r["total"] for r in S.rank_candidates(T, CANDIDATES, w2, obj)}
+            abl[d].append(kendalltau([base[i] for i in ids], [r2[i] for i in ids])[0])
+    ablation = {d: float(np.nanmean(v)) for d, v in abl.items()}
+    # null model: random scores give this hit@3 on average
+    return {"literature": lit_out, "literature_per_target": per_target, "ablation_tau": ablation}
+
+
 def similarity_verification() -> List[Row]:
     from data_sources.seed_catalog import CANDIDATES, TARGETS
     from scientific_engine import similarity as S
@@ -120,6 +193,29 @@ def similarity_verification() -> List[Row]:
 
 
 # --------------------------------------------------------------------------------------------- detector
+def detector_robustness(seeds=(1, 2)) -> Dict:
+    """F1 under added elevation noise and coarser resolution (synthetic ground truth)."""
+    from scientific_engine import discovery, synthetic
+    rows = []
+    for noise in (0.0, 2.0, 5.0, 10.0):
+        f1s = []
+        for sd in seeds:
+            g, truth = synthetic.planted_dem(sd)
+            if noise:
+                g.h = g.h + np.random.default_rng(100 + sd).normal(0, noise, g.h.shape)
+            f1s.append(synthetic.match_detections(discovery.detect_landforms(g), truth)["f1"])
+        rows.append({"condition": f"elevation noise sigma = {noise:g} m", "f1": float(np.mean(f1s))})
+    f1s = []
+    for sd in seeds:
+        g, truth = synthetic.planted_dem(sd, n=320, cell_m=30.0)
+        g2 = discovery.Grid(g.h[::2, ::2], g.cell_m * 2, g.bbox, g.source, g.provenance_class)
+        t2 = [{**t, "r": t["r"] / 2, "c": t["c"] / 2} for t in truth]
+        m = synthetic.match_detections(discovery.detect_landforms(g2, min_diameter_m=300), [{**t, "diameter_m": t["diameter_m"]} for t in t2])
+        f1s.append(m["f1"])
+    rows.append({"condition": "half resolution (60 m cells)", "f1": float(np.mean(f1s))})
+    return {"rows": rows}
+
+
 def detector_benchmark(seeds=range(1, 6)) -> Dict:
     from scientific_engine import discovery, synthetic
     out = []
@@ -137,7 +233,8 @@ def detector_benchmark(seeds=range(1, 6)) -> Dict:
 @lru_cache(maxsize=1)
 def run_all() -> Dict:
     t = time.perf_counter()
-    res = {"physics": physics_verification(), "similarity": similarity_verification(), "detector": detector_benchmark(), "throughput": physics_throughput()}
+    res = {"physics": physics_verification(), "similarity": similarity_verification(), "detector": detector_benchmark(), "throughput": physics_throughput(),
+           "physics_extended": physics_extended(), "similarity_extended": similarity_extended(), "detector_robustness": detector_robustness()}
     res["elapsed_s"] = time.perf_counter() - t
     allrows = res["physics"] + res["similarity"]
     res["passed"] = sum(r["passed"] for r in allrows); res["total"] = len(allrows)

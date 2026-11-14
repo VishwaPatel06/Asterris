@@ -51,7 +51,9 @@ with st.expander("Per-site rationale and provenance"):
         st.markdown(f"**{c['name']}**  " + theme.badge(cd.get("provenance_class", "demonstration")), unsafe_allow_html=True)
         for q, items in explain(t, cd, r, obj).items():
             if q.startswith(("Why", "Where")):
-                st.markdown(f"*{q}*"); [st.markdown(f"- {i}") for i in items]
+                st.markdown(f"*{q}*")
+                for item in items:
+                    st.markdown(f"- {item}")
         st.caption("Datasets: " + "; ".join(cd["sources"]) + f" | resolution {cd['resolution_m']} m | coverage {r['coverage']:.0%}")
 
 st.markdown("#### Export")

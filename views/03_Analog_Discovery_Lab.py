@@ -13,7 +13,7 @@ from scientific_engine import dem as demlib
 from config.mission_presets import MISSION_FILTERS
 from scientific_engine import discovery, synthetic, validation
 from scientific_engine.explain import explain
-from scientific_engine.similarity import rank_candidates, sensitivity_analysis
+from scientific_engine.similarity import sensitivity_analysis
 
 ctx = sidebar("discovery")
 theme.header("Analog Discovery Lab", "Scan terrain for landforms, filter by mission constraints, then score separately against the target.", "Workspace 03", "discovery")
@@ -61,14 +61,14 @@ with tab_d:
     if go_run:
         grid = None
         with st.spinner("Scanning terrain..."):
-            if src.startswith("Earth"):
+            if src.startswith("Earth") and bbox is not None:
                 r = tiles.fetch_dem(bbox)
                 if r["ok"]:
                     grid = discovery.Grid(r["dem"], r["cell_m"], r["bbox"], r["source"], "real", r["crs"])
                 else:
                     st.error(r["error"]); st.caption("Nothing was invented. Try again online, upload a DEM, or use the synthetic demonstration.")
-            elif src == "Uploaded DEM":
-                name, raw = manager.raster_bytes(upload_id); h, cell, msg = demlib.load_uploaded_dem(name, raw, n=600)
+            elif src == "Uploaded DEM" and upload_id and bbox is not None:
+                name, raw = manager.raster_bytes(upload_id) or ("", b""); h, cell, msg = demlib.load_uploaded_dem(name, raw, n=600)
                 if h is not None:
                     grid = discovery.Grid(np.nan_to_num(h, nan=float(np.nanmedian(h))), cell, bbox, f"Uploaded DEM {name}", "local", "as uploaded")
                 else:
@@ -166,7 +166,9 @@ with tab_r:
                 st.markdown(theme.badge(cand.get("provenance_class", "demonstration")) + theme.badge("", cand["status"]), unsafe_allow_html=True)
                 st.caption(f"{cand['lat']:.4f}, {cand['lon']:.4f} | {cand['scale']} | resolution {cand['resolution_m']} m | sources: {'; '.join(cand['sources'])}")
                 for q, lines in explain(t, cand, p, obj).items():
-                    st.markdown(f"**{q}**"); [st.markdown(f"- {l}") for l in lines]
+                    st.markdown(f"**{q}**")
+                    for line in lines:
+                        st.markdown(f"- {line}")
         with st.expander("How rankings change with the weights"):
             sa = sensitivity_analysis(t, ctx["cand_list"], W, obj)
             st.dataframe(pd.DataFrame(sa)[["name", "mean_rank", "rank_std", "best_rank", "worst_rank", "p_top3"]].round(2), hide_index=True, width="stretch")
