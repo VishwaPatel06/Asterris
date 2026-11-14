@@ -18,7 +18,6 @@ pg = st.navigation(
         st.Page("views/04_Scientific_Comparison.py", title="Scientific Comparison", icon=":material/balance:"),
         st.Page("views/05_Mission_Engineering.py", title="Mission Engineering", icon=":material/precision_manufacturing:"),
         st.Page("views/06_Field_Campaign_Reports.py", title="Field Campaign", icon=":material/description:"),
-        st.Page("views/07_AI_Research_Assistant.py", title="Research Assistant", icon=":material/forum:"),
     ],
     position="top",
 )
