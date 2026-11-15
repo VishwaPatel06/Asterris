@@ -1,29 +1,122 @@
-# Celestial Cartographers
+<div align="center">
+  <img src="assets/asterris_wordmark_light_transparent_cropped.png" alt="Asterris Logo" width="400">
+  
+  # Asterris
 
-*Discover worlds within our world.* An AI-assisted platform for finding, characterising and comparing Earth analogues of lunar and Martian environments (NASA Space Apps Challenge 2026).
+  **Advanced Planetary Exploration, Mission Engineering, and Scientific Simulation Platform**
 
-## Run (Windows CMD)
+  [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+  [![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B.svg)](https://streamlit.io/)
+  [![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg)](https://www.docker.com/)
+</div>
+check out our app
+
+   https://asterris-95blfcmhzca3kmnjajyvmq.streamlit.app/
+   
+## 📖 Overview
+
+**Asterris** is a comprehensive, interactive platform built with Streamlit designed for planetary science, mission engineering, and geospatial analysis. It combines robust scientific engines, 3D terrain visualization, and physics-based simulations to aid in the planning, analysis, and execution of space exploration missions. 
+
+Whether you are comparing planetary data with Earth analogs, simulating rover physics, or generating field campaign reports, Asterris provides a unified, AI-assisted interface for your mission control needs.
+
+## ✨ Key Features
+
+*   🌍 **Planetary & Geospatial Explorer:** Interactive 3D terrain viewers (powered by Three.js) and geospatial tile processing.
+*   🚀 **Mission Engineering & Control:** Plan campaigns, optimize resources, and simulate mission variables (including rovers and drilling mechanics).
+*   🔬 **Scientific Engine:** Advanced modules for Digital Elevation Models (DEM), subsurface analysis, spectral data, and planetary Machine Learning.
+*   🧪 **Analog Discovery Lab:** Compare extraterrestrial datasets with global Earth analogs.
+*   🤖 **AI Integration:** Built-in AI assistants and clustering algorithms to process complex mission data.
+*   📊 **Reporting:** Automated generation of detailed field campaign and scientific reports.
+
+## 📂 Project Structure
+
+```text
+Asterris-main/
+├── ai/                     # AI assistant and ML clustering logic
+├── assets/                 # Static assets, logos, JSON data, and 3D vendor libraries
+├── components/             # Custom Streamlit UI components and 3D viewers
+├── config/                 # Mission presets, settings, and planetary constants
+├── data_sources/           # Data ingestion for live Earth, analogs, and subsurface catalogs
+├── docs/                   # Architectural and development documentation
+├── geospatial/             # Terrain and tile mapping utilities
+├── optimization/           # Mission campaign optimization tools
+├── reports/                # Automated report generators
+├── scientific_engine/      # Core scientific modeling (DEM, ML, subsurface, validation)
+├── simulations/            # Physics engines for rovers and drilling
+├── tests/                  # Pytest suite for end-to-end and unit testing
+├── views/                  # Streamlit application pages (Mission Control, Explorer, etc.)
+├── app.py                  # Main Streamlit application entry point
+├── Dockerfile              # Docker container configuration
+├── docker-compose.yml      # Multi-container orchestration
+└── requirements.txt        # Project Python dependencies
 ```
-cd /d "D:\Asterris\celestial-cartographers (3)\celestial-cartographers"
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-streamlit run app.py
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+*   Python 3.9 or higher
+*   [Docker](https://www.docker.com/) (Optional, for containerized deployment)
+
+### Local Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-username/Asterris.git
+   cd Asterris
+   ```
+
+2. **Create a virtual environment (Recommended):**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows use: venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   # Install optional requirements if needed
+   # pip install -r requirements-optional.txt
+   ```
+
+4. **Environment Variables:**
+   Copy the example environment file and configure your API keys or database URLs.
+   ```bash
+   cp .env.example .env
+   ```
+
+5. **Run the Application:**
+   ```bash
+   streamlit run app.py
+   ```
+
+### Docker Deployment
+
+To run Asterris in a fully containerized environment using Docker Compose:
+
+```bash
+docker-compose up --build
 ```
-Or double-click `scripts\run_windows.bat`. Tests: `python -m pytest -q`. Model verification: `python scripts\verify_models.py`.
-Optional extras (rasterio for GeoTIFF metadata, etc.): `pip install -r requirements-optional.txt` (needs GDAL; Conda is easiest).
+The application will be accessible at `http://localhost:8501`.
 
-## Workspaces
-Overview, Mission Control (world, region, objective, editable weights, mission dashboard, **Data sources** manager), Planetary Explorer (3D globe and terrain, layers, fingerprint), Analog Discovery Lab (discover, rank, atlas, subsurface), Scientific Comparison (candidate vs target, Earth/Moon/Mars, spectra, seasons), Mission Engineering (terramechanics and gravity offload, traverse, drilling, model accuracy), Field Campaign (plan and exports), Research Assistant.
+## 🧪 Testing
 
-## 3D view
-Globe: Earth (Esri imagery), Moon (LROC WAC, NASA Moon Trek), Mars (Viking MDIM, NASA Mars Trek). Terrain: real Earth elevation (AWS Terrain Tiles) draped with satellite imagery, with elevation, slope, hillshade layers, sun control, vertical exaggeration, cursor readout and discovered-landform outlines. Imagery and elevation are fetched by your browser, so terrain needs internet. Moon/Mars terrain uses an uploaded DEM, otherwise a clearly labelled schematic surface. To view agency hardware models, put `.glb` files (NASA 3D Resources, etc.) in `assets/models/`.
+The project includes a robust test suite covering the scientific engine, physics simulations, and data discovery modules. To run the tests, ensure you have `pytest` installed and run:
 
-## Adding hackathon data and keys later
-1. Put credentials in `.env` (names in `.env.example`). Missing keys never break the app; providers show "Awaiting credentials".
-2. Mission Control > Data sources: upload tables (CSV/GeoJSON/JSON, template provided) or rasters (GeoTIFF/ASC), choose body and layer. Tables with `role=target` or `role=candidate` merge into the working catalogue and override built-in demo rows with the same `id`.
-3. New datasets or providers: add rows to `config/data_catalog.py` and `data_sources/planetary/registry.py`.
+```bash
+pytest tests/
+```
 
-## Data integrity
-Built-in site values are hand-compiled **demonstration estimates**, not NASA measurements. Each record carries a provenance class: real, local, demonstration, derived. Missing values stay missing. Similarity indices are not probabilities. See `docs/scientific_methodology.md` and `docs/IMPLEMENTATION_STATUS.md`.
+## 🛠 Development & Architecture
+
+For detailed information on the scientific methodology, implementation status, and architecture, please refer to the documentation in the `docs/` directory:
+*   [Architecture Guide](docs/architecture.md)
+*   [Scientific Methodology](docs/scientific_methodology.md)
+*   [Development Guide](docs/development_guide.md)
+
+## 📄 License
+
+[Insert License Information Here - e.g., MIT, GPLv3]
+
+---
+*Built with ❤️ for Planetary Exploration.*
