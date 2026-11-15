@@ -194,7 +194,7 @@ with tab_d:
     dr = st.session_state.get("disc_result")
     if dr:
         res, grid = dr["res"], dr["grid"]
-        theme.note(res["coverage_note"] + " Detections are candidates, not confirmed features.")
+        theme.note(res["coverage_note"] + "Detections are candidates, not confirmed features.")
         m = st.columns(4)
         m[0].metric("Landforms detected", res["detections"])
         m[1].metric("Passed mission filters", len(res["candidates"]))
@@ -474,7 +474,7 @@ with tab_s:
     # -----------------------------------------------------------------------
     # SECTION 2: SUBSURFACE EXPLORATION DASHBOARD & FILTERS
     # -----------------------------------------------------------------------
-    with st.expander("🔍 Subsurface Exploration Filters, Mission Objective & Search", expanded=True):
+    with st.expander("Subsurface Exploration Filters, Mission Objective & Search", expanded=True):
         f_row1 = st.columns([1.3, 1.3, 1.1, 1.1])
         with f_row1[0]:
             sub_obj = st.selectbox(
@@ -594,7 +594,7 @@ with tab_s:
         sel_col1, sel_col2 = st.columns([2.2, 1.8])
         with sel_col1:
             active_sub_id = st.selectbox(
-                "🎯 Active Subsurface Analogue Site (Inspect across Map, 3D Viewer, Scientific Analysis & Planetary Comparison)",
+                "Active Subsurface Analogue Site (Inspect across Map, 3D Viewer, Scientific Analysis & Planetary Comparison)",
                 [s["id"] for s in filtered_sites],
                 format_func=lambda sid: (
                     f"{site_by_id[sid]['name']} [{site_by_id[sid]['category']}] — "
@@ -763,15 +763,15 @@ with tab_s:
                 )
                 st.plotly_chart(fig_map, use_container_width=True)
                 st.caption(
-                    "🎨 **Category Marker Legend:** "
-                    "🟠 Volcanic lava tubes (`#F07832`) | 🟤 Natural caves (`#A8754B`) | "
-                    "🟢 Karst systems (`#45C4A1`) | 🔵 Glacial & subglacial (`#48BFE3`) | "
-                    "🟣 Underground ice & permafrost (`#A78BFA`) | ⚪ Mines & underground labs (`#F1F5FA`)."
+                    " **Category Marker Legend:** "
+                    "Volcanic lava tubes (`#F07832`) |  Natural caves (`#A8754B`) | "
+                    "Karst systems (`#45C4A1`) |  Glacial & subglacial (`#48BFE3`) | "
+                    "Underground ice & permafrost (`#A78BFA`) |  Mines & underground labs (`#F1F5FA`)."
                 )
 
             with prof_col:
                 with st.container(border=True):
-                    st.markdown(f"#### 📋 Candidate Site Profile: {active_site['name']}")
+                    st.markdown(f"####  Candidate Site Profile: {active_site['name']}")
                     st.markdown(
                         evidence_badge_html(active_site["evidence_class"])
                         + f"**ID:** `{active_site['id']}` | **Category:** `{active_site['category']}`",
@@ -793,14 +793,14 @@ with tab_s:
                         f"- **Data Availability:** {active_site['data_availability']}"
                     )
 
-                    st.markdown("###### 🔗 Traceable Dataset References & Source URLs")
+                    st.markdown("######  Traceable Dataset References & Source URLs")
                     for dref in active_site.get("dataset_references", []):
                         st.markdown(
                             f"- **{dref['provider']}:** [{dref['title']}]({dref['url']}) "
                             f"(`{dref['resolution']}`, {dref['date']})"
                         )
 
-                    st.markdown("###### ⚠️ Scientific & Operational Data Limitations")
+                    st.markdown("######  Scientific & Operational Data Limitations")
                     st.caption(active_site.get("limitations", "No additional limitations documented."))
 
         # ===================================================================
@@ -812,7 +812,7 @@ with tab_s:
 
             with v_ctrl:
                 with st.container(border=True):
-                    st.markdown("##### 🕸️ 3D Cave & Lava Tube Controls")
+                    st.markdown("#####  3D Cave & Lava Tube Controls")
                     geom_source_mode = st.radio(
                         "3D Geometry Source",
                         [
@@ -853,7 +853,7 @@ with tab_s:
                     )
 
                     st.divider()
-                    st.markdown("###### 📊 3D Model Provenance Metadata")
+                    st.markdown("######  3D Model Provenance Metadata")
                     st.markdown(
                         evidence_badge_html(
                             "DEMONSTRATION" if force_demo else meta_3d.get("geometry_class", "UNKNOWN")
@@ -868,14 +868,14 @@ with tab_s:
                         f"- **Spatial Resolution:** `{meta_3d.get('resolution', 'N/A')}`\n"
                         f"- **Acquisition Date:** `{meta_3d.get('acquisition_date', 'N/A')}`"
                     )
-                    st.caption(f"ℹ️ **Limitations:** {meta_3d.get('limitations', '-')}")
+                    st.caption(f"ℹ **Limitations:** {meta_3d.get('limitations', '-')}")
 
             with v_main:
                 if geom_source_mode == "Empty State / Clear Model" or (
                     geom_source_mode == "Upload Custom .GLB / .GLTF Cave Scan" and not uploaded_glb_bytes
                 ):
                     st.info(
-                        "🌌 **Clean Empty 3D State:** No 3D geometry file is currently loaded. "
+                        " **Clean Empty 3D State:** No 3D geometry file is currently loaded. "
                         "Upload a `.glb`/`.gltf` cave scan on the left or switch to **'Selected Site Survey / Parametric Geometry'**."
                     )
                 elif geom_source_mode == "Local Assets Models (assets/models/)":
@@ -890,7 +890,7 @@ with tab_s:
                 else:
                     if not active_site.get("has_measured_geometry") or force_demo:
                         st.warning(
-                            "🔬 **Scientific Distinction Notice:** A full 3D laser scan is unavailable for this record (or synthetic preview is enabled). "
+                            " **Scientific Distinction Notice:** A full 3D laser scan is unavailable for this record (or synthetic preview is enabled). "
                             "The viewport below displays a **clearly labelled synthetic demonstration tunnel** and never implies that conceptual geometry represents the actual dimensions of a named cave."
                         )
                     html_cave = subsurface_3d_viewer_html(
@@ -908,7 +908,7 @@ with tab_s:
         # SUB-TAB 3: SUBSURFACE GEOMETRY, TERRAIN & ENVIRONMENTAL ANALYSIS (Sections 5 & 7)
         # ===================================================================
         with sub_tab_sci:
-            st.markdown(f"#### 📐 Scientific Characterization & Evidence Classification: {active_site['name']}")
+            st.markdown(f"####  Scientific Characterization & Evidence Classification: {active_site['name']}")
             st.caption(
                 "Every property displays its documented value, unit, traceable source, calculation assumptions, and Evidence Classification (`MEASURED`, `DERIVED`, `INFERRED`, `DEMONSTRATION`, `UNKNOWN`). Missing properties are explicitly shown as `'Unknown / Not measured'` — never substituted with zero."
             )
@@ -975,15 +975,15 @@ with tab_s:
         # SUB-TAB 4: EARTH VS MOON/MARS SUBSURFACE COMPARISON (Section 6)
         # ===================================================================
         with sub_tab_planet:
-            st.markdown("#### 🪐 Earth vs. Moon vs. Mars Subsurface Comparative Planetology")
+            st.markdown("####  Earth vs. Moon vs. Mars Subsurface Comparative Planetology")
             st.info(
-                "🔬 **Fundamental Planetary Physics Distinction:** Terrestrial caves and lava tubes provide high-fidelity analogues for basaltic roof stratigraphy, skylight collapse mechanics, LiDAR/GPR sensing, and chemolithoautotrophic biosignatures, **but cannot reproduce Lunar (1.62 m/s²) or Martian (3.72 m/s²) gravity, lunar hard vacuum, Martian 6-mbar CO₂ atmosphere, primary Galactic Cosmic Ray (GCR) heavy-ion spectra, or cryogenic polar cold-trapping (<110 K).**"
+                " **Fundamental Planetary Physics Distinction:** Terrestrial caves and lava tubes provide high-fidelity analogues for basaltic roof stratigraphy, skylight collapse mechanics, LiDAR/GPR sensing, and chemolithoautotrophic biosignatures, **but cannot reproduce Lunar (1.62 m/s²) or Martian (3.72 m/s²) gravity, lunar hard vacuum, Martian 6-mbar CO₂ atmosphere, primary Galactic Cosmic Ray (GCR) heavy-ion spectra, or cryogenic polar cold-trapping (<110 K).**"
             )
 
             pc1, pc2, pc3 = st.columns(3)
             with pc1:
                 cmp_earth_id = st.selectbox(
-                    "🌍 Terrestrial Subsurface Analogue",
+                    "Terrestrial Subsurface Analogue",
                     [s["id"] for s in filtered_sites],
                     index=[s["id"] for s in filtered_sites].index(active_sub_id),
                     format_func=lambda i: site_by_id[i]["name"],
@@ -992,7 +992,7 @@ with tab_s:
             with pc2:
                 moon_refs = PLANETARY_SUBSURFACE_REFERENCES["Moon"]
                 cmp_moon_idx = st.selectbox(
-                    "🌕 Lunar Subsurface Reference Feature",
+                    "Lunar Subsurface Reference Feature",
                     range(len(moon_refs)),
                     format_func=lambda i: moon_refs[i]["name"],
                 )
@@ -1000,7 +1000,7 @@ with tab_s:
             with pc3:
                 mars_refs = PLANETARY_SUBSURFACE_REFERENCES["Mars"]
                 cmp_mars_idx = st.selectbox(
-                    "🔴 Martian Subsurface Reference Feature",
+                    "Martian Subsurface Reference Feature",
                     range(len(mars_refs)),
                     format_func=lambda i: mars_refs[i]["name"],
                 )
@@ -1009,7 +1009,7 @@ with tab_s:
             sc1, sc2, sc3 = st.columns(3)
             with sc1:
                 with st.container(border=True):
-                    st.markdown(f"##### 🌍 {cmp_earth['name'].split(' — ')[0]}")
+                    st.markdown(f"#####  {cmp_earth['name'].split(' — ')[0]}")
                     st.caption(f"{cmp_earth['region']}, {cmp_earth['country']} | `9.81 m/s² (1.0g)`")
                     st.markdown(
                         f"- **Evidence Status:** {cmp_earth['data_availability']}\n"
@@ -1018,7 +1018,7 @@ with tab_s:
                     )
             with sc2:
                 with st.container(border=True):
-                    st.markdown(f"##### 🌕 {cmp_moon['name'].split(' — ')[0]}")
+                    st.markdown(f"#####  {cmp_moon['name'].split(' — ')[0]}")
                     st.caption(f"{cmp_moon['region']} (`{cmp_moon['lat']:.2f}°, {cmp_moon['lon']:.2f}°`) | `1.62 m/s² (0.165g)`")
                     st.markdown(
                         f"- **Observation vs Inference:** {cmp_moon['observation_status']}\n"
@@ -1027,7 +1027,7 @@ with tab_s:
                     )
             with sc3:
                 with st.container(border=True):
-                    st.markdown(f"##### 🔴 {cmp_mars['name'].split(' — ')[0]}")
+                    st.markdown(f"#####  {cmp_mars['name'].split(' — ')[0]}")
                     st.caption(f"{cmp_mars['region']} (`{cmp_mars['lat']:.2f}°, {cmp_mars['lon']:.2f}°`) | `3.72 m/s² (0.379g)`")
                     st.markdown(
                         f"- **Observation vs Inference:** {cmp_mars['observation_status']}\n"
@@ -1036,26 +1036,47 @@ with tab_s:
                     )
 
             cmp_rows, cmp_num = build_earth_moon_mars_comparison(cmp_earth, cmp_moon, cmp_mars)
-            st.markdown("##### 📊 10-Dimension Comparative Matrix (Measured vs. Inferred Evidence)")
+            st.markdown("#####  10-Dimension Comparative Matrix (Measured vs. Inferred Evidence)")
             st.dataframe(pd.DataFrame(cmp_rows), hide_index=True, use_container_width=True)
 
-            viz_col1, viz_col2 = st.columns([1.15, 1.0], gap="large")
+            viz_col1, viz_col2 = st.columns([1.1, 1.0], gap="large")
             with viz_col1:
-                st.plotly_chart(
-                    plot_cross_section_scale_diagram(cmp_earth, cmp_moon, cmp_mars),
-                    use_container_width=True,
+                fig_cross = plot_cross_section_scale_diagram(cmp_earth, cmp_moon, cmp_mars)
+                # Keep the title separate from the long trace labels. The legend is
+                # placed beneath the plot so it cannot collide with the heading.
+                fig_cross.update_layout(
+                    title=dict(
+                        text="Tunnel cross-section scale comparison",
+                        x=0.02,
+                        xanchor="left",
+                        y=0.98,
+                        font=dict(size=15),
+                    ),
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top",
+                        y=-0.24,
+                        xanchor="left",
+                        x=0,
+                        font=dict(size=9),
+                        bgcolor="rgba(8, 15, 30, 0.65)",
+                    ),
+                    height=470,
+                    margin=dict(l=65, r=18, t=75, b=125),
+                    title_pad=dict(t=8),
                 )
+                st.plotly_chart(fig_cross, use_container_width=True)
             with viz_col2:
-                ew_num = float(cmp_num["earth_width_m"] or 0.0)
-                eh_num = float(cmp_num["earth_height_m"] or 0.0)
-                ed_num = float(cmp_num["earth_entrance_drop_m"] or 0.0)
+                ew_num = float(cmp_num["earth_width_m"]) if cmp_num["earth_width_m"] is not None else None
+                eh_num = float(cmp_num["earth_height_m"]) if cmp_num["earth_height_m"] is not None else None
+                ed_num = float(cmp_num["earth_entrance_drop_m"]) if cmp_num["earth_entrance_drop_m"] is not None else None
                 fig_bar = go.Figure(
                     data=[
                         go.Bar(
                             name=f"Earth ({cmp_earth['name'].split(' — ')[0]} — MEASURED)",
-                            x=["Entrance/Skylight Span (m)", "Entrance/Pit Depth (m)", "Max Tube Width (m)", "Max Arch Height (m)"],
+                            x=["Entrance<br>span", "Pit<br>depth", "Tube<br>width", "Arch<br>height"],
                             y=[
-                                float(cmp_earth["geometry"]["entrance_width_m"]["value"] or 0),
+                                (float(cmp_earth["geometry"]["entrance_width_m"]["value"]) if cmp_earth["geometry"]["entrance_width_m"]["value"] is not None else None),
                                 ed_num,
                                 ew_num,
                                 eh_num,
@@ -1064,7 +1085,7 @@ with tab_s:
                         ),
                         go.Bar(
                             name=f"Moon ({cmp_moon['name'].split(' — ')[0]} — Skylight Measured / Tube Inferred)",
-                            x=["Entrance/Skylight Span (m)", "Entrance/Pit Depth (m)", "Max Tube Width (m)", "Max Arch Height (m)"],
+                            x=["Entrance<br>span", "Pit<br>depth", "Tube<br>width", "Arch<br>height"],
                             y=[
                                 cmp_num["moon_skylight_w_m"],
                                 cmp_num["moon_depth_m"],
@@ -1075,7 +1096,7 @@ with tab_s:
                         ),
                         go.Bar(
                             name=f"Mars ({cmp_mars['name'].split(' — ')[0]} — Skylight Measured / Tube Inferred)",
-                            x=["Entrance/Skylight Span (m)", "Entrance/Pit Depth (m)", "Max Tube Width (m)", "Max Arch Height (m)"],
+                            x=["Entrance<br>span", "Pit<br>depth", "Tube<br>width", "Arch<br>height"],
                             y=[
                                 cmp_num["mars_skylight_w_m"],
                                 cmp_num["mars_depth_m"],
@@ -1088,21 +1109,34 @@ with tab_s:
                 )
                 fig_bar.update_layout(
                     barmode="group",
-                    title="Comparable Geometric Dimensions (m) — Note: 0 indicates Unmeasured",
+                    title=dict(text="Geometric dimensions (m)", x=0.02, xanchor="left", font=dict(size=15)),
                     template="plotly_dark",
                     paper_bgcolor=SP["DEEP_SPACE_NAVY"],
                     plot_bgcolor=SP["NEBULA_NAVY"],
-                    height=390,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                    margin=dict(l=40, r=20, t=65, b=40),
+                    height=470,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top",
+                        y=-0.30,
+                        xanchor="left",
+                        x=0,
+                        font=dict(size=9),
+                        bgcolor="rgba(8, 15, 30, 0.65)",
+                    ),
+                    xaxis=dict(tickangle=0, automargin=True, title="Dimension"),
+                    yaxis=dict(title="Measurement (m)", rangemode="tozero"),
+                    margin=dict(l=55, r=18, t=75, b=140),
                 )
                 st.plotly_chart(fig_bar, use_container_width=True)
+            st.caption(
+                "Dimensions are shown only where values are available. Lunar and Martian tube dimensions may be inferred from skylight observations; they are not direct measurements of subsurface tubes."
+            )
 
         # ===================================================================
         # SUB-TAB 5: MISSION SUITABILITY & MULTI-CANDIDATE COMPARISON (Sections 8 & 9)
         # ===================================================================
         with sub_tab_suit:
-            st.markdown(f"#### 🎯 Subsurface Mission Suitability & Multi-Site Comparison ({sub_obj})")
+            st.markdown(f"####  Subsurface Mission Suitability & Multi-Site Comparison ({sub_obj})")
             st.caption(
                 "Analogue Fidelity, Mission Suitability, and Transferability are evaluated separately and never collapsed into a single unexplained score. High analogue fidelity does not automatically imply high operational suitability."
             )
@@ -1129,7 +1163,7 @@ with tab_s:
                 f"{len(active_eval['missing_properties'])} unmeasured props",
             )
 
-            with st.expander("📖 Score Calculation Methodology, Weightings & Scientific Limitations", expanded=False):
+            with st.expander("Score Calculation Methodology, Weightings & Scientific Limitations", expanded=False):
                 st.markdown(
                     f"- **Calculation Methodology:** {active_eval['methodology_note']}\n"
                     f"- **Planetary Physics & Gravity Scaling Constraint:** {active_eval['gravity_sensitivity_note']}\n"
@@ -1139,7 +1173,7 @@ with tab_s:
                     f"`{', '.join(active_eval['missing_properties']) if active_eval['missing_properties'] else 'None (Complete)'}`"
                 )
 
-            st.markdown("##### ⚖️ Compare Multiple Terrestrial Subsurface Sites")
+            st.markdown("#####  Compare Multiple Terrestrial Subsurface Sites")
             default_cmp_ids = [s["id"] for s in filtered_sites[: min(4, len(filtered_sites))]]
             if active_sub_id not in default_cmp_ids:
                 default_cmp_ids[0] = active_sub_id
@@ -1162,7 +1196,7 @@ with tab_s:
                 best_site = site_by_id[best_eval["site_id"]]
 
                 st.success(
-                    f"🏆 **Recommended Site for '{sub_obj}' ({t['body']} Target): {best_site['name']}** — "
+                    f" **Recommended Site for '{sub_obj}' ({t['body']} Target): {best_site['name']}** — "
                     f"Combines **Analogue Fidelity `{best_eval['analogue_fidelity']:.2f}`**, **Operational Mission Suitability `{best_eval['mission_suitability']:.2f}`**, "
                     f"and **Transferability `{best_eval['transferability']:.2f}`** with **`{best_eval['data_coverage']:.0%}`** measured property coverage "
                     f"({best_site['category']}, `{best_site['lithology']}`)."
@@ -1265,7 +1299,7 @@ with tab_s:
         # SUB-TAB 6: DATA SOURCES, SCIENTIFIC INTEGRITY & EXPORT REPORTS (Sections 10 & 12)
         # ===================================================================
         with sub_tab_export:
-            st.markdown("#### 📚 Traceable Data Sources, Provider Adapters & Scientific Assessment Exports")
+            st.markdown("####  Traceable Data Sources, Provider Adapters & Scientific Assessment Exports")
 
             st.markdown("##### 1. Traceable Planetary & Speleological Dataset Provenance Registry")
             st.dataframe(pd.DataFrame(SUBSURFACE_DATASET_REGISTRY), hide_index=True, use_container_width=True)
@@ -1319,7 +1353,7 @@ with tab_s:
             ex1, ex2, ex3 = st.columns(3)
             with ex1:
                 st.download_button(
-                    "📄 Download Assessment Report (.MD / Print-Ready)",
+                    "Download Assessment Report (.MD / Print-Ready)",
                     data=report_md.encode("utf-8"),
                     file_name=f"{active_site['id']}_subsurface_scientific_assessment.md",
                     mime="text/markdown",
@@ -1327,7 +1361,7 @@ with tab_s:
                 )
             with ex2:
                 st.download_button(
-                    "📊 Export Evaluated Subsurface Catalog (.CSV)",
+                    "Export Evaluated Subsurface Catalog (.CSV)",
                     data=df_export_csv.to_csv(index=False).encode("utf-8"),
                     file_name=f"asterris_subsurface_{sub_obj.lower().replace(' ', '_')}.csv",
                     mime="text/csv",
@@ -1335,12 +1369,12 @@ with tab_s:
                 )
             with ex3:
                 st.download_button(
-                    "🌍 Export Subsurface Analogue GIS Layer (.GeoJSON)",
+                    "Export Subsurface Analogue GIS Layer (.GeoJSON)",
                     data=geojson_str.encode("utf-8"),
                     file_name="asterris_subsurface_analogues.geojson",
                     mime="application/geo+json",
                     use_container_width=True,
                 )
 
-            with st.expander("👁️ Preview Generated Subsurface Analogue Assessment Report", expanded=False):
+            with st.expander("Preview Generated Subsurface Analogue Assessment Report", expanded=False):
                 st.markdown(report_md)

@@ -136,7 +136,7 @@ st.write("")
 
 # 3. Main Navigation Tabs
 tab_3d, tab_layers, tab_terrain = st.tabs(
-    ["🌍 3D Surface & Models", "🧬 Layers & Fingerprint", "⛰️ Terrain Derivatives"]
+    ["3D Surface & Models", "Layers & Fingerprint", "Terrain Derivatives"]
 )
 
 # ==========================================
@@ -144,14 +144,14 @@ tab_3d, tab_layers, tab_terrain = st.tabs(
 # ==========================================
 with tab_3d:
     st.markdown(
-        "#### 🎯 Mission Parameter Configuration & Global Earth Analog ML Search"
+        "#### Mission Parameter Configuration & Global Earth Analog ML Search"
     )
     st.caption(
         f"Configure mission terrain, thermal, weather, soil, mineralogical, and coordinate boundary parameters. "
         f"The multi-dimensional ML similarity engine evaluates locations across the **entire Earth** against **{t['name']} ({t['body']})**."
     )
 
-    with st.expander("⚙️ Configure Mission Parameters (Terrain, Temperature, Weather, Soil, Materials, Area & Exaggeration)", expanded=True):
+    with st.expander("Configure Mission Parameters (Terrain, Temperature, Weather, Soil, Materials, Area & Exaggeration)", expanded=True):
         p_col1, p_col2, p_col3, p_col4 = st.columns(4)
 
         with p_col1:
@@ -278,7 +278,7 @@ with tab_3d:
         st.info("No Earth locations fall inside the current coordinate bounding box. Expand the latitude/longitude limits or switch to 'Global (All Over Earth)'.")
     else:
         st.markdown(
-            f"##### 📊 ML Recommended Global Earth Locations ({len(ml_results)} Worldwide Matches vs. {t['name']})"
+            f"##### ML Recommended Global Earth Locations ({len(ml_results)} Worldwide Matches vs. {t['name']})"
         )
         st.caption(
             "Select any row in the table below (or use the location selector) to fly directly to that location's 3D Globe & Terrain view."

@@ -96,7 +96,7 @@ def score_bars(rows: List[dict]) -> go.Figure:
     names = [r["name"].split(" (")[0] for r in rows]; fig = go.Figure()
     for key, lab, col in (("fidelity", "Analogue fidelity", P.COSMIC_CYAN), ("suitability", "Mission suitability", P.AURORA_TEAL), ("transferability", "Transferability (heuristic)", P.GALAXY_PURPLE)):
         fig.add_trace(go.Bar(x=names, y=[r[key] if r[key] is not None else None for r in rows], name=lab, marker_color=col))
-    fig.update_layout(barmode="group", title="Three scores kept separate", yaxis=dict(range=[0, 1]), xaxis=dict(tickangle=-20))
+    fig.update_layout(barmode="group", title="Three scores kept separate", yaxis=dict(range=[0, 1]), xaxis=dict(tickangle=0))
     return base(fig, 400)
 
 
@@ -106,7 +106,7 @@ def difference_card(rows: List[dict]) -> go.Figure:
     for i, r in enumerate(rows):
         v = _dims(r)
         fig.add_trace(go.Bar(x=[DIMENSION_LABELS[d] for d in DIMENSIONS], y=[(1 - x) if x is not None else None for x in v], name=r["name"].split(" (")[0], marker_color=SER[i % len(SER)]))
-    fig.update_layout(barmode="group", title="Difference scorecard (1 - similarity; lower is closer)", yaxis=dict(range=[0, 1]))
+    fig.update_layout(barmode="group", title="Difference scorecard (1 - similarity; lower is closer)", yaxis=dict(range=[0, 1]), xaxis = dict(tickangle=0, automargin=True))
     return base(fig, 380)
 
 
