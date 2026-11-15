@@ -667,4 +667,3 @@ for row_idx in range(0, len(workspaces), 3):
                     st.switch_page(ws["page"])
 
 st.write("")
-theme.demo_note()
