@@ -1,9 +1,17 @@
+import base64
 import json
+from pathlib import Path
+
 import streamlit as st
 import streamlit.components.v1 as components
 
 from components import charts, theme
 from components.context import sidebar
+
+# Load the Asterris wordmark from the project-level assets directory.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+LOGO_PATH = PROJECT_ROOT / "assets" / "asterris_wordmark_light_transparent_cropped.png"
+logo_b64 = base64.b64encode(LOGO_PATH.read_bytes()).decode("utf-8")
 
 # 1. Context & Theme Initialization
 ctx = sidebar("overview")
@@ -92,14 +100,12 @@ st.markdown(
         font-weight: 700;
         margin-bottom: 2px;
     }
-    .brand-title {
-        font-size: 2.65rem;
-        font-weight: 800;
-        line-height: 1.08;
-        background: linear-gradient(90deg, #ffffff 0%, #bae6fd 55%, #5eead4 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
+    .brand-title-logo {
+        display: block;
+        width: 310px;
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
     }
     .hero-subtitle {
         font-size: 1.05rem;
@@ -230,22 +236,15 @@ globe_pins = [
 hero_left, hero_right = st.columns([1.05, 1.25], gap="large", vertical_alignment="center")
 
 with hero_left:
-    # Celestial Cartographers Custom SVG Emblem + Brand Name
+    # Asterris transparent wordmark
     st.markdown(
-        """
+        f"""
         <div class="brand-lockup">
-            <div class="brand-icon">
-                <svg width="32" height="32" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="18" cy="18" r="12" stroke="#38bdf8" stroke-width="1.8"/>
-                    <ellipse cx="18" cy="18" rx="16.5" ry="6.2" transform="rotate(-24 18 18)" stroke="#5eead4" stroke-width="1.5" stroke-dasharray="3 2"/>
-                    <circle cx="18" cy="18" r="4" fill="#38bdf8" fill-opacity="0.35" stroke="#bae6fd" stroke-width="1.4"/>
-                    <circle cx="29" cy="12" r="2.2" fill="#5eead4"/>
-                </svg>
-            </div>
-            <div>
-                <div class="brand-eyebrow">NASA Space Apps Challenge 2026</div>
-                <h1 class="brand-title">Celestial Cartographers</h1>
-            </div>
+            <img
+                src="data:image/png;base64,{logo_b64}"
+                alt="Asterris"
+                class="brand-title-logo"
+            />
         </div>
         <p class="hero-subtitle">
             Discover worlds within our world. Identify terrestrial analogues that mirror lunar and Martian terrain,
