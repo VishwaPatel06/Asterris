@@ -22,12 +22,12 @@ Whether you are comparing planetary data with Earth analogs, simulating rover ph
 
 ## ✨ Key Features
 
-*   🌍 **Planetary & Geospatial Explorer:** Interactive 3D terrain viewers (powered by Three.js) and geospatial tile processing.
-*   🚀 **Mission Engineering & Control:** Plan campaigns, optimize resources, and simulate mission variables (including rovers and drilling mechanics).
-*   🔬 **Scientific Engine:** Advanced modules for Digital Elevation Models (DEM), subsurface analysis, spectral data, and planetary Machine Learning.
-*   🧪 **Analog Discovery Lab:** Compare extraterrestrial datasets with global Earth analogs.
-*   🤖 **AI Integration:** Built-in AI assistants and clustering algorithms to process complex mission data.
-*   📊 **Reporting:** Automated generation of detailed field campaign and scientific reports.
+*    **Planetary & Geospatial Explorer:** Interactive 3D terrain viewers (powered by Three.js) and geospatial tile processing.
+*    **Mission Engineering & Control:** Plan campaigns, optimize resources, and simulate mission variables (including rovers and drilling mechanics).
+*    **Scientific Engine:** Advanced modules for Digital Elevation Models (DEM), subsurface analysis, spectral data, and planetary Machine Learning.
+*    **Analog Discovery Lab:** Compare extraterrestrial datasets with global Earth analogs.
+*    **AI Integration:** Built-in AI assistants and clustering algorithms to process complex mission data.
+*    **Reporting:** Automated generation of detailed field campaign and scientific reports.
 
 ## 📂 Project Structure
 
@@ -115,9 +115,3 @@ For detailed information on the scientific methodology, implementation status, a
 *   [Scientific Methodology](docs/scientific_methodology.md)
 *   [Development Guide](docs/development_guide.md)
 
-## 📄 License
-
-[Insert License Information Here - e.g., MIT, GPLv3]
-
----
-*Built with ❤️ for Planetary Exploration.*
